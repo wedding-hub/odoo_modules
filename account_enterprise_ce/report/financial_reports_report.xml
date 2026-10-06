@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="action_report_financial_statement" model="ir.actions.report">
+            <field name="name">Financial Statement</field>
+            <field name="model">financial.report.wizard</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">account_enterprise_ce.report_financial_statement_tmpl</field>
+            <field name="report_file">account_enterprise_ce.report_financial_statement_tmpl</field>
+            <field name="print_report_name">'Financial_Statement_' + (object.report_type or 'Report')</field>
+            <field name="binding_model_id" ref="model_financial_report_wizard"/>
+            <field name="binding_type">report</field>
+        </record>
+    </data>
+</odoo>

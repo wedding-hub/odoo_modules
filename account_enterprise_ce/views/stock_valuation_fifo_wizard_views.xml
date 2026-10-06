@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_stock_valuation_fifo_wizard_form" model="ir.ui.view">
+            <field name="name">stock.valuation.fifo.wizard.form</field>
+            <field name="model">stock.valuation.fifo.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Inventory Valuation &amp; FIFO Audit Wizard">
+                    <p class="text-muted">
+                        Generate a comprehensive audit of stock valuation layers (SVL), inspect active FIFO cost layers,
+                        and reconcile physical inventory value directly against General Ledger stock valuation accounts.
+                    </p>
+                    <group>
+                        <group string="Audit Cut-Off">
+                            <field name="as_of_date"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Filter Options">
+                            <field name="category_ids" widget="many2many_tags"
+                                   placeholder="Audit all product categories..."/>
+                            <field name="product_ids" widget="many2many_tags"
+                                   placeholder="Audit all products..."/>
+                            <field name="only_discrepancies"/>
+                        </group>
+                    </group>
+                    <footer>
+                        <button name="action_generate_audit"
+                                string="Generate &amp; View Audit"
+                                type="object"
+                                class="btn-primary"/>
+                        <button name="action_generate_and_print"
+                                string="Print PDF Report"
+                                type="object"
+                                class="btn-secondary"
+                                icon="fa-print"/>
+                        <button string="Cancel"
+                                class="btn-secondary"
+                                special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_stock_valuation_fifo_wizard" model="ir.actions.act_window">
+            <field name="name">Inventory Valuation &amp; FIFO Audit</field>
+            <field name="res_model">stock.valuation.fifo.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+    </data>
+</odoo>

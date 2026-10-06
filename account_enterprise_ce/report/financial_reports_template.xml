@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <template id="report_financial_statement_tmpl">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="doc">
+                    <t t-set="report" t-value="data.get('report_data') if data and data.get('report_data') else env['account.financial.report'].get_report_data(doc.report_type, {'date_from': doc.date_from and str(doc.date_from), 'date_to': str(doc.date_to), 'target_move': doc.target_move})"/>
+                    <t t-call="web.external_layout">
+                        <div class="page" style="font-size: 11px;">
+                            <div class="row mb-3 border-bottom pb-2">
+                                <div class="col-8">
+                                    <h2 class="fw-bold text-primary mb-1"><t t-esc="report['report_name']"/></h2>
+                                    <div class="text-muted">
+                                        <strong t-esc="report['company_name']"/> |
+                                        <t t-if="report.get('date_from')">
+                                            Period: <t t-esc="report['date_from']"/> to <t t-esc="report['date_to']"/>
+                                        </t>
+                                        <t t-else="">
+                                            As of: <t t-esc="report['date_to']"/>
+                                        </t>
+                                    </div>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <span class="badge bg-light text-dark border p-2">Official Financial Statement</span>
+                                </div>
+                            </div>
+
+                            <!-- 1. Balance Sheet -->
+                            <t t-if="report.get('sections')">
+                                <t t-foreach="report['sections']" t-as="sec">
+                                    <div class="mb-3">
+                                        <h5 class="bg-light border-bottom p-1 fw-bold text-dark"><t t-esc="sec['title']"/></h5>
+                                        <table class="table table-sm table-striped align-middle mb-1">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 15%;">Code</th>
+                                                    <th>Account Name</th>
+                                                    <th class="text-end" style="width: 25%;">Balance</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr t-foreach="sec['lines']" t-as="l">
+                                                    <td><t t-esc="l['code']"/></td>
+                                                    <td><t t-esc="l['name']"/></td>
+                                                    <td class="text-end"><t t-esc="'{:,.2f}'.format(l['balance'])"/></td>
+                                                </tr>
+                                            </tbody>
+                                            <tfoot>
+                                                <tr class="table-secondary fw-bold">
+                                                    <td colspan="2">Total <t t-esc="sec['title']"/></td>
+                                                    <td class="text-end"><t t-esc="'{:,.2f}'.format(sec['total'])"/></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </t>
+                                <div class="row mt-4 p-2 bg-light border fw-bold text-center">
+                                    <div class="col-6">Total Assets: <t t-esc="'{:,.2f}'.format(report['total_assets'])"/></div>
+                                    <div class="col-6">Total Liabilities &amp; Equity: <t t-esc="'{:,.2f}'.format(report['total_liabilities_equity'])"/></div>
+                                </div>
+                            </t>
+
+                            <!-- 2. Profit and Loss -->
+                            <t t-elif="report.get('operating_income')">
+                                <h6 class="fw-bold text-success border-bottom pb-1">Operating Revenue</h6>
+                                <table class="table table-sm mb-2">
+                                    <tbody>
+                                        <tr t-foreach="report['operating_income']['lines']" t-as="l">
+                                            <td style="width: 15%;"><t t-esc="l['code']"/></td>
+                                            <td><t t-esc="l['name']"/></td>
+                                            <td class="text-end" style="width: 25%;"><t t-esc="'{:,.2f}'.format(l['balance'])"/></td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="fw-bold table-light">
+                                            <td colspan="2">Total Operating Revenue</td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(report['operating_income']['total'])"/></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+
+                                <h6 class="fw-bold text-danger border-bottom pb-1 mt-3">Cost of Sales (COGS)</h6>
+                                <table class="table table-sm mb-2">
+                                    <tbody>
+                                        <tr t-foreach="report['cost_of_sales']['lines']" t-as="l">
+                                            <td style="width: 15%;"><t t-esc="l['code']"/></td>
+                                            <td><t t-esc="l['name']"/></td>
+                                            <td class="text-end" style="width: 25%;"><t t-esc="'{:,.2f}'.format(l['balance'])"/></td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="fw-bold table-light">
+                                            <td colspan="2">Total Cost of Sales</td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(report['cost_of_sales']['total'])"/></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+
+                                <div class="p-2 bg-info text-white fw-bold d-flex justify-content-between my-2">
+                                    <span>GROSS PROFIT</span>
+                                    <span><t t-esc="'{:,.2f}'.format(report['gross_profit'])"/></span>
+                                </div>
+
+                                <h6 class="fw-bold text-danger border-bottom pb-1 mt-3">Operating Expenses</h6>
+                                <table class="table table-sm mb-2">
+                                    <tbody>
+                                        <tr t-foreach="report['operating_expenses']['lines']" t-as="l">
+                                            <td style="width: 15%;"><t t-esc="l['code']"/></td>
+                                            <td><t t-esc="l['name']"/></td>
+                                            <td class="text-end" style="width: 25%;"><t t-esc="'{:,.2f}'.format(l['balance'])"/></td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="fw-bold table-light">
+                                            <td colspan="2">Total Operating Expenses</td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(report['operating_expenses']['total'])"/></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+
+                                <div class="p-3 bg-light border fw-bold d-flex justify-content-between mt-3 fs-6">
+                                    <span>NET PROFIT / (LOSS)</span>
+                                    <span t-attf-class="#{report['net_profit'] &gt;= 0 and 'text-success' or 'text-danger'}">
+                                        <t t-esc="'{:,.2f}'.format(report['net_profit'])"/>
+                                    </span>
+                                </div>
+                            </t>
+
+                            <!-- 3. Trial Balance -->
+                            <t t-elif="report.get('lines') and report.get('totals')">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th style="width: 12%;">Code</th>
+                                            <th>Account Name</th>
+                                            <th class="text-end" style="width: 15%;">Initial Balance</th>
+                                            <th class="text-end" style="width: 15%;">Debit</th>
+                                            <th class="text-end" style="width: 15%;">Credit</th>
+                                            <th class="text-end" style="width: 15%;">Ending Balance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="report['lines']" t-as="l">
+                                            <td><t t-esc="l['code']"/></td>
+                                            <td><t t-esc="l['name']"/></td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(l['initial_balance'])"/></td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(l['debit'])"/></td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(l['credit'])"/></td>
+                                            <td class="text-end fw-bold"><t t-esc="'{:,.2f}'.format(l['end_balance'])"/></td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="table-secondary fw-bold">
+                                            <td colspan="2">Totals</td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(report['totals']['initial_balance'])"/></td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(report['totals']['debit'])"/></td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(report['totals']['credit'])"/></td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(report['totals']['end_balance'])"/></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </t>
+
+                            <!-- 4. General Ledger -->
+                            <t t-elif="report.get('accounts')">
+                                <t t-foreach="report['accounts']" t-as="acc">
+                                    <div class="mb-3 page-break-inside-avoid">
+                                        <div class="p-1 bg-secondary text-white fw-bold d-flex justify-content-between">
+                                            <span>[<t t-esc="acc['account_code']"/>] <t t-esc="acc['account_name']"/></span>
+                                            <span>Initial: <t t-esc="'{:,.2f}'.format(acc['initial_balance'])"/> | Ending: <t t-esc="'{:,.2f}'.format(acc['ending_balance'])"/></span>
+                                        </div>
+                                        <table class="table table-sm table-striped" style="font-size: 10px;">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 12%;">Date</th>
+                                                    <th style="width: 8%;">JRNL</th>
+                                                    <th style="width: 15%;">Entry</th>
+                                                    <th style="width: 18%;">Partner</th>
+                                                    <th>Label</th>
+                                                    <th class="text-end" style="width: 12%;">Debit</th>
+                                                    <th class="text-end" style="width: 12%;">Credit</th>
+                                                    <th class="text-end" style="width: 12%;">Balance</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr t-foreach="acc['lines']" t-as="m">
+                                                    <td><t t-esc="m['date']"/></td>
+                                                    <td><t t-esc="m['journal']"/></td>
+                                                    <td><t t-esc="m['entry']"/></td>
+                                                    <td><t t-esc="m['partner']"/></td>
+                                                    <td><t t-esc="m['label']"/></td>
+                                                    <td class="text-end"><t t-esc="'{:,.2f}'.format(m['debit'])"/></td>
+                                                    <td class="text-end"><t t-esc="'{:,.2f}'.format(m['credit'])"/></td>
+                                                    <td class="text-end fw-bold"><t t-esc="'{:,.2f}'.format(m['balance'])"/></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </t>
+                            </t>
+
+                            <!-- 5. Aged Partner Balances -->
+                            <t t-elif="report.get('partners')">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Partner</th>
+                                            <th class="text-end" style="width: 12%;">Current</th>
+                                            <th class="text-end" style="width: 12%;">1 - 30</th>
+                                            <th class="text-end" style="width: 12%;">31 - 60</th>
+                                            <th class="text-end" style="width: 12%;">61 - 90</th>
+                                            <th class="text-end" style="width: 12%;">91 - 120</th>
+                                            <th class="text-end" style="width: 12%;">120+</th>
+                                            <th class="text-end" style="width: 13%;">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="report['partners']" t-as="p">
+                                            <td><t t-esc="p['partner_name']"/></td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(p['current'])"/></td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(p['days_1_30'])"/></td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(p['days_31_60'])"/></td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(p['days_61_90'])"/></td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(p['days_91_120'])"/></td>
+                                            <td class="text-end text-danger"><t t-esc="'{:,.2f}'.format(p['days_120_plus'])"/></td>
+                                            <td class="text-end fw-bold text-primary"><t t-esc="'{:,.2f}'.format(p['total'])"/></td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="table-secondary fw-bold">
+                                            <td>Totals</td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(report['totals']['current'])"/></td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(report['totals']['days_1_30'])"/></td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(report['totals']['days_31_60'])"/></td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(report['totals']['days_61_90'])"/></td>
+                                            <td class="text-end"><t t-esc="'{:,.2f}'.format(report['totals']['days_91_120'])"/></td>
+                                            <td class="text-end text-danger"><t t-esc="'{:,.2f}'.format(report['totals']['days_120_plus'])"/></td>
+                                            <td class="text-end text-primary"><t t-esc="'{:,.2f}'.format(report['totals']['total'])"/></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </t>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+    </data>
+</odoo>

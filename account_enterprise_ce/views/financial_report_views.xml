@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Client Actions for Dynamic OWL Financial Reports -->
+        <record id="action_client_balance_sheet" model="ir.actions.client">
+            <field name="name">Balance Sheet</field>
+            <field name="tag">account_financial_report_widget</field>
+            <field name="context">{'report_type': 'balance_sheet'}</field>
+        </record>
+
+        <record id="action_client_profit_and_loss" model="ir.actions.client">
+            <field name="name">Profit and Loss</field>
+            <field name="tag">account_financial_report_widget</field>
+            <field name="context">{'report_type': 'profit_and_loss'}</field>
+        </record>
+
+        <record id="action_client_trial_balance" model="ir.actions.client">
+            <field name="name">Trial Balance</field>
+            <field name="tag">account_financial_report_widget</field>
+            <field name="context">{'report_type': 'trial_balance'}</field>
+        </record>
+
+        <record id="action_client_general_ledger" model="ir.actions.client">
+            <field name="name">General Ledger</field>
+            <field name="tag">account_financial_report_widget</field>
+            <field name="context">{'report_type': 'general_ledger'}</field>
+        </record>
+
+        <record id="action_client_aged_receivable" model="ir.actions.client">
+            <field name="name">Aged Receivable</field>
+            <field name="tag">account_financial_report_widget</field>
+            <field name="context">{'report_type': 'aged_receivable'}</field>
+        </record>
+
+        <record id="action_client_aged_payable" model="ir.actions.client">
+            <field name="name">Aged Payable</field>
+            <field name="tag">account_financial_report_widget</field>
+            <field name="context">{'report_type': 'aged_payable'}</field>
+        </record>
+
+        <!-- Financial Report Wizard View -->
+        <record id="view_financial_report_wizard_form" model="ir.ui.view">
+            <field name="name">financial.report.wizard.form</field>
+            <field name="model">financial.report.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Financial Statement Options">
+                    <group>
+                        <group>
+                            <field name="report_type"/>
+                            <field name="target_move"/>
+                        </group>
+                        <group>
+                            <field name="date_from" invisible="report_type in ('balance_sheet', 'aged_receivable', 'aged_payable')"/>
+                            <field name="date_to"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <footer>
+                        <button name="action_open_dynamic_report" string="Open Interactive Report" type="object" class="btn-primary"/>
+                        <button name="action_print_pdf" string="Print PDF Report" type="object" class="btn-secondary" icon="fa-print"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_financial_report_wizard" model="ir.actions.act_window">
+            <field name="name">Financial Reports</field>
+            <field name="res_model">financial.report.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+    </data>
+</odoo>

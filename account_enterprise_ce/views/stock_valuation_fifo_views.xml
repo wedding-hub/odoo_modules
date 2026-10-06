@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- ============================================================== -->
+        <!-- Stock Move Valuation Extension View (Odoo 19)                  -->
+        <!-- ============================================================== -->
+        <record id="view_stock_move_list_inherit_enterprise" model="ir.ui.view">
+            <field name="name">stock.move.list.inherit.enterprise</field>
+            <field name="model">stock.move</field>
+            <field name="inherit_id" ref="stock_account.stock_move_view_list_valuation"/>
+            <field name="arch" type="xml">
+                <field name="remaining_qty" position="after">
+                    <field name="fifo_layer_status" widget="badge"
+                           decoration-success="fifo_layer_status == 'open'"
+                           decoration-info="fifo_layer_status == 'partial'"
+                           decoration-muted="fifo_layer_status == 'consumed'"
+                           decoration-warning="fifo_layer_status == 'out'"/>
+                    <field name="account_move_id" optional="show"/>
+                </field>
+            </field>
+        </record>
+
+        <!-- ============================================================== -->
+        <!-- Stock Valuation FIFO Audit Line Views                          -->
+        <!-- ============================================================== -->
+        <record id="view_stock_valuation_fifo_audit_line_list" model="ir.ui.view">
+            <field name="name">stock.valuation.fifo.audit.line.list</field>
+            <field name="model">stock.valuation.fifo.audit.line</field>
+            <field name="arch" type="xml">
+                <list string="Valuation &amp; GL Reconciliation Lines"
+                      decoration-danger="status == 'discrepancy'"
+                      decoration-warning="status == 'no_account'"
+                      decoration-success="status == 'reconciled'"
+                      create="false" edit="false">
+                    <field name="product_id"/>
+                    <field name="product_code" optional="show"/>
+                    <field name="categ_id"/>
+                    <field name="svl_qty" sum="Total SVL Qty"/>
+                    <field name="svl_value" sum="Total SVL Value" widget="monetary"/>
+                    <field name="fifo_remaining_qty" sum="Total FIFO Qty"/>
+                    <field name="fifo_remaining_value" sum="Total FIFO Value" widget="monetary"/>
+                    <field name="fifo_avg_unit_cost" optional="show"/>
+                    <field name="open_layers_count" optional="show"/>
+                    <field name="valuation_account_id"/>
+                    <field name="gl_balance" sum="Total GL Balance" widget="monetary"/>
+                    <field name="discrepancy" sum="Total Discrepancy" widget="monetary"
+                           decoration-danger="discrepancy != 0"/>
+                    <field name="status" widget="badge"
+                           decoration-success="status == 'reconciled'"
+                           decoration-danger="status == 'discrepancy'"
+                           decoration-warning="status == 'no_account'"/>
+                    <field name="cogs_verification" widget="badge"
+                           decoration-success="cogs_verification == 'verified'"
+                           decoration-danger="cogs_verification == 'issues'"
+                           decoration-muted="cogs_verification == 'na'"/>
+                    <button name="action_view_fifo_layers" type="object"
+                            string="Layers" icon="fa-cubes"
+                            title="Audit FIFO Cost Layers" class="btn-link"/>
+                    <button name="action_view_gl_items" type="object"
+                            string="GL" icon="fa-book"
+                            title="View General Ledger Items" class="btn-link"/>
+                    <button name="action_view_cogs_entries" type="object"
+                            string="COGS" icon="fa-share"
+                            title="View COGS Journal Entries" class="btn-link"/>
+                    <field name="currency_id" column_invisible="True"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_stock_valuation_fifo_audit_line_form" model="ir.ui.view">
+            <field name="name">stock.valuation.fifo.audit.line.form</field>
+            <field name="model">stock.valuation.fifo.audit.line</field>
+            <field name="arch" type="xml">
+                <form string="Valuation Audit Item" create="false" edit="false">
+                    <sheet>
+                        <div class="oe_title">
+                            <label for="product_id" string="Product"/>
+                            <h1>
+                                <field name="product_id" readonly="1"/>
+                            </h1>
+                            <h3>
+                                <field name="product_code" readonly="1"/>
+                            </h3>
+                        </div>
+                        <group>
+                            <group string="Inventory SVL &amp; FIFO Metrics">
+                                <field name="categ_id" readonly="1"/>
+                                <field name="uom_id" readonly="1"/>
+                                <field name="svl_qty" readonly="1"/>
+                                <field name="svl_value" widget="monetary" readonly="1"/>
+                                <field name="fifo_remaining_qty" readonly="1"/>
+                                <field name="fifo_remaining_value" widget="monetary" readonly="1"/>
+                                <field name="fifo_avg_unit_cost" readonly="1"/>
+                                <field name="open_layers_count" readonly="1"/>
+                            </group>
+                            <group string="General Ledger Reconciliation">
+                                <field name="company_id" readonly="1"/>
+                                <field name="currency_id" invisible="1"/>
+                                <field name="valuation_account_id" readonly="1"/>
+                                <field name="gl_balance" widget="monetary" readonly="1"/>
+                                <field name="discrepancy" widget="monetary" readonly="1"
+                                       decoration-danger="discrepancy != 0"/>
+                                <field name="status" widget="badge" readonly="1"
+                                       decoration-success="status == 'reconciled'"
+                                       decoration-danger="status == 'discrepancy'"
+                                       decoration-warning="status == 'no_account'"/>
+                                <field name="cogs_verification" widget="badge" readonly="1"
+                                       decoration-success="cogs_verification == 'verified'"
+                                       decoration-danger="cogs_verification == 'issues'"
+                                       decoration-muted="cogs_verification == 'na'"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Diagnostic Notes &amp; Audit Trail">
+                                <field name="notes" readonly="1"/>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_stock_valuation_fifo_audit_line_search" model="ir.ui.view">
+            <field name="name">stock.valuation.fifo.audit.line.search</field>
+            <field name="model">stock.valuation.fifo.audit.line</field>
+            <field name="arch" type="xml">
+                <search string="Search Valuation Lines">
+                    <field name="product_id"/>
+                    <field name="product_code"/>
+                    <field name="categ_id"/>
+                    <field name="valuation_account_id"/>
+                    <filter string="Discrepancies Only" name="filter_discrepancy"
+                            domain="[('status', '=', 'discrepancy')]"/>
+                    <filter string="Fully Reconciled" name="filter_reconciled"
+                            domain="[('status', '=', 'reconciled')]"/>
+                    <filter string="Missing Valuation Account" name="filter_no_account"
+                            domain="[('status', '=', 'no_account')]"/>
+                    <separator/>
+                    <filter string="COGS Issues" name="filter_cogs_issues"
+                            domain="[('cogs_verification', '=', 'issues')]"/>
+                    <filter string="Active FIFO Layers" name="filter_has_layers"
+                            domain="[('open_layers_count', '&gt;', 0)]"/>
+                    <separator/>
+                    <filter string="Category" name="group_by_categ" context="{'group_by': 'categ_id'}"/>
+                    <filter string="Audit Status" name="group_by_status" context="{'group_by': 'status'}"/>
+                    <filter string="Valuation Account" name="group_by_account" context="{'group_by': 'valuation_account_id'}"/>
+                    <filter string="COGS Status" name="group_by_cogs" context="{'group_by': 'cogs_verification'}"/>
+                </search>
+            </field>
+        </record>
+
+        <!-- ============================================================== -->
+        <!-- Stock Valuation FIFO Audit Record Views                        -->
+        <!-- ============================================================== -->
+        <record id="view_stock_valuation_fifo_audit_list" model="ir.ui.view">
+            <field name="name">stock.valuation.fifo.audit.list</field>
+            <field name="model">stock.valuation.fifo.audit</field>
+            <field name="arch" type="xml">
+                <list string="Inventory Valuation Audits"
+                      decoration-danger="has_discrepancy"
+                      decoration-success="not has_discrepancy">
+                    <field name="name"/>
+                    <field name="as_of_date"/>
+                    <field name="company_id"/>
+                    <field name="total_svl_value" widget="monetary" sum="Total Physical Stock"/>
+                    <field name="total_gl_value" widget="monetary" sum="Total GL Balance"/>
+                    <field name="total_discrepancy" widget="monetary" sum="Total Variance"
+                           decoration-danger="total_discrepancy != 0"/>
+                    <field name="total_open_fifo_layers"/>
+                    <field name="discrepancy_count"
+                           decoration-danger="discrepancy_count &gt; 0"/>
+                    <field name="state" widget="badge"
+                           decoration-info="state == 'draft'"
+                           decoration-success="state == 'computed'"/>
+                    <field name="currency_id" column_invisible="True"/>
+                    <field name="has_discrepancy" column_invisible="True"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_stock_valuation_fifo_audit_form" model="ir.ui.view">
+            <field name="name">stock.valuation.fifo.audit.form</field>
+            <field name="model">stock.valuation.fifo.audit</field>
+            <field name="arch" type="xml">
+                <form string="Inventory Valuation &amp; FIFO Audit">
+                    <header>
+                        <button name="action_compute_audit" type="object"
+                                string="Re-Compute Audit" class="btn-primary" icon="fa-refresh"/>
+                        <button name="action_print_pdf" type="object"
+                                string="Print PDF Report" class="btn-secondary" icon="fa-print"/>
+                        <button name="action_view_discrepancies" type="object"
+                                string="View Discrepancies" class="btn-warning"
+                                invisible="not has_discrepancy" icon="fa-exclamation-triangle"/>
+                        <field name="state" widget="statusbar" statusbar_visible="draft,computed"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_button_box" name="button_box">
+                            <div class="oe_stat_button" icon="fa-cubes">
+                                <div class="o_stat_info">
+                                    <span class="o_stat_value">
+                                        <field name="total_open_fifo_layers"/>
+                                    </span>
+                                    <span class="o_stat_text">Open Layers</span>
+                                </div>
+                            </div>
+                            <button class="oe_stat_button text-danger" type="object"
+                                    name="action_view_discrepancies"
+                                    icon="fa-exclamation-circle"
+                                    invisible="not has_discrepancy">
+                                <div class="o_stat_info">
+                                    <span class="o_stat_value">
+                                        <field name="discrepancy_count"/>
+                                    </span>
+                                    <span class="o_stat_text">Variances</span>
+                                </div>
+                            </button>
+                        </div>
+                        <div class="oe_title">
+                            <label for="name" string="Audit Reference"/>
+                            <h1>
+                                <field name="name" readonly="1"/>
+                            </h1>
+                        </div>
+                        <group>
+                            <group string="Audit Parameters">
+                                <field name="as_of_date"/>
+                                <field name="company_id" groups="base.group_multi_company"/>
+                                <field name="category_ids" widget="many2many_tags"
+                                       placeholder="All categories"/>
+                                <field name="product_ids" widget="many2many_tags"
+                                       placeholder="All products"/>
+                                <field name="currency_id" invisible="1"/>
+                                <field name="has_discrepancy" invisible="1"/>
+                            </group>
+                            <group string="Executive Financial Summary">
+                                <field name="total_svl_value" widget="monetary"/>
+                                <field name="total_gl_value" widget="monetary"/>
+                                <field name="total_discrepancy" widget="monetary"
+                                       decoration-danger="total_discrepancy != 0"
+                                       decoration-success="total_discrepancy == 0"/>
+                                <field name="total_products_count"/>
+                            </group>
+                        </group>
+
+                        <notebook>
+                            <page string="Product Valuation &amp; GL Reconciliation" name="lines">
+                                <field name="line_ids">
+                                    <list string="Lines"
+                                          decoration-danger="status == 'discrepancy'"
+                                          decoration-warning="status == 'no_account'"
+                                          decoration-success="status == 'reconciled'"
+                                          editable="bottom">
+                                        <field name="product_id" readonly="1"/>
+                                        <field name="product_code" readonly="1" optional="show"/>
+                                        <field name="categ_id" readonly="1"/>
+                                        <field name="svl_qty" readonly="1"/>
+                                        <field name="svl_value" widget="monetary" readonly="1"/>
+                                        <field name="fifo_remaining_qty" readonly="1"/>
+                                        <field name="fifo_remaining_value" widget="monetary" readonly="1"/>
+                                        <field name="fifo_avg_unit_cost" readonly="1" optional="show"/>
+                                        <field name="open_layers_count" readonly="1" optional="show"/>
+                                        <field name="valuation_account_id" readonly="1"/>
+                                        <field name="gl_balance" widget="monetary" readonly="1"/>
+                                        <field name="discrepancy" widget="monetary" readonly="1"
+                                               decoration-danger="discrepancy != 0"/>
+                                        <field name="status" widget="badge" readonly="1"
+                                               decoration-success="status == 'reconciled'"
+                                               decoration-danger="status == 'discrepancy'"
+                                               decoration-warning="status == 'no_account'"/>
+                                        <field name="cogs_verification" widget="badge" readonly="1"
+                                               decoration-success="cogs_verification == 'verified'"
+                                               decoration-danger="cogs_verification == 'issues'"
+                                               decoration-muted="cogs_verification == 'na'"/>
+                                        <button name="action_view_fifo_layers" type="object"
+                                                string="FIFO" icon="fa-cubes" title="Audit FIFO Layers"/>
+                                        <button name="action_view_gl_items" type="object"
+                                                string="GL" icon="fa-book" title="View GL Lines"/>
+                                        <button name="action_view_cogs_entries" type="object"
+                                                string="COGS" icon="fa-share" title="View COGS Entries"/>
+                                        <field name="currency_id" column_invisible="True"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Actions -->
+        <record id="action_stock_valuation_fifo_audit" model="ir.actions.act_window">
+            <field name="name">Inventory Valuation &amp; FIFO Audit</field>
+            <field name="res_model">stock.valuation.fifo.audit</field>
+            <field name="view_mode">list,form</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Run your first Inventory Valuation and FIFO GL Audit!
+                </p>
+                <p>
+                    Reconcile physical stock valuation layers against General Ledger accounts,
+                    audit FIFO layers, and verify COGS journal entries.
+                </p>
+            </field>
+        </record>
+    </data>
+</odoo>

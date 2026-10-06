@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+    <t t-name="account_enterprise_ce.FinancialReportWidget">
+        <div class="o_financial_report_widget h-100 d-flex flex-column bg-view overflow-auto">
+            <!-- Top Control Bar -->
+            <div class="o_control_panel border-bottom bg-light p-3 shadow-sm">
+                <div class="container-fluid d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa fa-line-chart text-primary fs-4"/>
+                        <select class="form-select form-select-sm fw-bold border-primary shadow-sm"
+                                style="width: 220px;"
+                                t-att-value="state.reportType"
+                                t-on-change="onReportChange">
+                            <option value="balance_sheet">Balance Sheet</option>
+                            <option value="profit_and_loss">Profit and Loss</option>
+                            <option value="trial_balance">Trial Balance</option>
+                            <option value="general_ledger">General Ledger</option>
+                            <option value="aged_receivable">Aged Receivable</option>
+                            <option value="aged_payable">Aged Payable</option>
+                        </select>
+                    </div>
+
+                    <!-- Date & Target Filters -->
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <!-- Presets -->
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" t-on-click="() => this.setPreset('this_month')">This Month</button>
+                            <button class="btn btn-outline-secondary" t-on-click="() => this.setPreset('this_year')">This Year</button>
+                            <button class="btn btn-outline-secondary" t-on-click="() => this.setPreset('last_year')">Last Year</button>
+                        </div>
+
+                        <!-- Date Range Inputs -->
+                        <div class="d-flex align-items-center gap-1">
+                            <t t-if="state.reportType !== 'balance_sheet' and state.reportType !== 'aged_receivable' and state.reportType !== 'aged_payable'">
+                                <span class="small text-muted">From:</span>
+                                <input type="date" class="form-control form-control-sm"
+                                       style="width: 130px;"
+                                       t-att-value="state.dateFrom"
+                                       t-on-change="onDateFromChange"/>
+                            </t>
+                            <span class="small text-muted">To:</span>
+                            <input type="date" class="form-control form-control-sm"
+                                   style="width: 130px;"
+                                   t-att-value="state.dateTo"
+                                   t-on-change="onDateToChange"/>
+                        </div>
+
+                        <!-- Target Moves -->
+                        <select class="form-select form-select-sm" style="width: 140px;"
+                                t-att-value="state.targetMove"
+                                t-on-change="onTargetMoveChange">
+                            <option value="posted">Posted Only</option>
+                            <option value="all">All Entries</option>
+                        </select>
+
+                        <!-- Action Buttons -->
+                        <button class="btn btn-sm btn-outline-primary shadow-sm" t-on-click="loadReportData" title="Refresh">
+                            <i class="fa fa-refresh"/>
+                        </button>
+                        <button class="btn btn-sm btn-secondary shadow-sm" t-on-click="printPdf" title="Print PDF">
+                            <i class="fa fa-print me-1"/> PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Body Content -->
+            <div class="flex-grow-1 p-4">
+                <div class="container bg-white rounded shadow-sm p-4">
+                    <t t-if="state.isLoading">
+                        <div class="text-center py-5">
+                            <i class="fa fa-circle-o-notch fa-spin fa-3x text-primary mb-3"/>
+                            <h5 class="text-muted">Calculating financial data...</h5>
+                        </div>
+                    </t>
+
+                    <t t-elif="state.data">
+                        <!-- Report Header -->
+                        <div class="border-bottom pb-3 mb-4 d-flex justify-content-between align-items-end">
+                            <div>
+                                <h2 class="fw-bold text-dark mb-1"><t t-esc="state.data.report_name"/></h2>
+                                <div class="text-muted">
+                                    <strong t-esc="state.data.company_name"/> |
+                                    <t t-if="state.data.date_from">
+                                        Period: <t t-esc="state.data.date_from"/> to <t t-esc="state.data.date_to"/>
+                                    </t>
+                                    <t t-else="">
+                                        As of: <t t-esc="state.data.date_to"/>
+                                    </t>
+                                </div>
+                            </div>
+                            <t t-if="state.reportType === 'balance_sheet'">
+                                <div class="badge p-2 fs-6"
+                                     t-attf-class="badge p-2 fs-6 #{state.data.is_balanced ? 'bg-success' : 'bg-danger'}">
+                                    <t t-if="state.data.is_balanced">Balanced (Assets = Liab. + Equity)</t>
+                                    <t t-else="">Unbalanced</t>
+                                </div>
+                            </t>
+                        </div>
+
+                        <!-- 1. BALANCE SHEET VIEW -->
+                        <t t-if="state.reportType === 'balance_sheet'">
+                            <t t-foreach="state.data.sections" t-as="sec" t-key="sec.title">
+                                <div class="mb-4">
+                                    <h4 class="fw-bold text-primary border-bottom pb-2 mb-2"><t t-esc="sec.title"/></h4>
+                                    <table class="table table-hover align-middle mb-0">
+                                        <tbody>
+                                            <tr t-foreach="sec.lines" t-as="l" t-key="l.id">
+                                                <td style="width: 15%;" class="text-muted font-monospace"><t t-esc="l.code"/></td>
+                                                <td>
+                                                    <a href="#" class="text-decoration-none fw-medium text-dark"
+                                                       t-on-click.prevent="() => this.openAccountLines(l.id, l.name)">
+                                                        <t t-esc="l.name"/>
+                                                    </a>
+                                                </td>
+                                                <td class="text-end fw-bold font-monospace" style="width: 25%;">
+                                                    <t t-esc="formatMonetary(l.balance)"/>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="table-light fw-bold border-top border-dark">
+                                                <td colspan="2">Total <t t-esc="sec.title"/></td>
+                                                <td class="text-end font-monospace text-primary fs-6">
+                                                    <t t-esc="formatMonetary(sec.total)"/>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </t>
+
+                            <div class="card bg-light border-primary p-3 mt-4">
+                                <div class="row text-center">
+                                    <div class="col-6">
+                                        <div class="text-muted small">Total Assets</div>
+                                        <div class="fs-4 fw-bold text-primary"><t t-esc="formatMonetary(state.data.total_assets)"/></div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-muted small">Total Liabilities &amp; Equity</div>
+                                        <div class="fs-4 fw-bold text-dark"><t t-esc="formatMonetary(state.data.total_liabilities_equity)"/></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+
+                        <!-- 2. PROFIT AND LOSS VIEW -->
+                        <t t-elif="state.reportType === 'profit_and_loss'">
+                            <!-- Operating Income -->
+                            <div class="mb-4">
+                                <h5 class="fw-bold text-success border-bottom pb-2">Operating Revenue</h5>
+                                <table class="table table-sm table-hover align-middle mb-1">
+                                    <tbody>
+                                        <tr t-foreach="state.data.operating_income.lines" t-as="l" t-key="l.id">
+                                            <td style="width: 15%;" class="text-muted font-monospace"><t t-esc="l.code"/></td>
+                                            <td>
+                                                <a href="#" class="text-decoration-none text-dark"
+                                                   t-on-click.prevent="() => this.openAccountLines(l.id, l.name)">
+                                                    <t t-esc="l.name"/>
+                                                </a>
+                                            </td>
+                                            <td class="text-end font-monospace" style="width: 25%;"><t t-esc="formatMonetary(l.balance)"/></td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="table-light fw-bold">
+                                            <td colspan="2">Total Operating Revenue</td>
+                                            <td class="text-end font-monospace text-success"><t t-esc="formatMonetary(state.data.operating_income.total)"/></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            <!-- Cost of Sales -->
+                            <div class="mb-4">
+                                <h5 class="fw-bold text-danger border-bottom pb-2">Cost of Revenue (COGS)</h5>
+                                <table class="table table-sm table-hover align-middle mb-1">
+                                    <tbody>
+                                        <tr t-foreach="state.data.cost_of_sales.lines" t-as="l" t-key="l.id">
+                                            <td style="width: 15%;" class="text-muted font-monospace"><t t-esc="l.code"/></td>
+                                            <td>
+                                                <a href="#" class="text-decoration-none text-dark"
+                                                   t-on-click.prevent="() => this.openAccountLines(l.id, l.name)">
+                                                    <t t-esc="l.name"/>
+                                                </a>
+                                            </td>
+                                            <td class="text-end font-monospace" style="width: 25%;"><t t-esc="formatMonetary(l.balance)"/></td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="table-light fw-bold">
+                                            <td colspan="2">Total Cost of Revenue</td>
+                                            <td class="text-end font-monospace text-danger"><t t-esc="formatMonetary(state.data.cost_of_sales.total)"/></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            <!-- Gross Profit Alert Bar -->
+                            <div class="alert alert-info d-flex justify-content-between align-items-center py-2 px-3 fw-bold mb-4">
+                                <span>GROSS PROFIT</span>
+                                <span class="font-monospace fs-5"><t t-esc="formatMonetary(state.data.gross_profit)"/></span>
+                            </div>
+
+                            <!-- Operating Expenses -->
+                            <div class="mb-4">
+                                <h5 class="fw-bold text-danger border-bottom pb-2">Operating Expenses</h5>
+                                <table class="table table-sm table-hover align-middle mb-1">
+                                    <tbody>
+                                        <tr t-foreach="state.data.operating_expenses.lines" t-as="l" t-key="l.id">
+                                            <td style="width: 15%;" class="text-muted font-monospace"><t t-esc="l.code"/></td>
+                                            <td>
+                                                <a href="#" class="text-decoration-none text-dark"
+                                                   t-on-click.prevent="() => this.openAccountLines(l.id, l.name)">
+                                                    <t t-esc="l.name"/>
+                                                </a>
+                                            </td>
+                                            <td class="text-end font-monospace" style="width: 25%;"><t t-esc="formatMonetary(l.balance)"/></td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="table-light fw-bold">
+                                            <td colspan="2">Total Operating Expenses</td>
+                                            <td class="text-end font-monospace text-danger"><t t-esc="formatMonetary(state.data.operating_expenses.total)"/></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            <!-- Net Profit Summary Card -->
+                            <div class="card p-3 shadow-sm border"
+                                 t-attf-class="card p-3 shadow-sm border #{state.data.net_profit &gt;= 0 ? 'border-success bg-light' : 'border-danger bg-light'}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h4 class="mb-0 fw-bold">NET PROFIT / (LOSS)</h4>
+                                    <span class="fs-3 fw-bold font-monospace"
+                                          t-attf-class="#{state.data.net_profit &gt;= 0 ? 'text-success' : 'text-danger'}">
+                                        <t t-esc="formatMonetary(state.data.net_profit)"/>
+                                    </span>
+                                </div>
+                            </div>
+                        </t>
+
+                        <!-- 3. TRIAL BALANCE VIEW -->
+                        <t t-elif="state.reportType === 'trial_balance'">
+                            <table class="table table-sm table-striped table-bordered align-middle">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th style="width: 10%;">Code</th>
+                                        <th>Account Name</th>
+                                        <th class="text-end" style="width: 15%;">Initial Balance</th>
+                                        <th class="text-end" style="width: 15%;">Period Debit</th>
+                                        <th class="text-end" style="width: 15%;">Period Credit</th>
+                                        <th class="text-end" style="width: 15%;">Ending Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="state.data.lines" t-as="l" t-key="l.id">
+                                        <td class="font-monospace"><t t-esc="l.code"/></td>
+                                        <td>
+                                            <a href="#" class="text-decoration-none text-dark"
+                                               t-on-click.prevent="() => this.openAccountLines(l.id, l.name)">
+                                                <t t-esc="l.name"/>
+                                            </a>
+                                        </td>
+                                        <td class="text-end font-monospace"><t t-esc="formatMonetary(l.initial_balance)"/></td>
+                                        <td class="text-end font-monospace text-success"><t t-esc="formatMonetary(l.debit)"/></td>
+                                        <td class="text-end font-monospace text-danger"><t t-esc="formatMonetary(l.credit)"/></td>
+                                        <td class="text-end font-monospace fw-bold"><t t-esc="formatMonetary(l.end_balance)"/></td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-secondary fw-bold">
+                                        <td colspan="2">Totals</td>
+                                        <td class="text-end font-monospace"><t t-esc="formatMonetary(state.data.totals.initial_balance)"/></td>
+                                        <td class="text-end font-monospace text-success"><t t-esc="formatMonetary(state.data.totals.debit)"/></td>
+                                        <td class="text-end font-monospace text-danger"><t t-esc="formatMonetary(state.data.totals.credit)"/></td>
+                                        <td class="text-end font-monospace"><t t-esc="formatMonetary(state.data.totals.end_balance)"/></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </t>
+
+                        <!-- 4. GENERAL LEDGER VIEW -->
+                        <t t-elif="state.reportType === 'general_ledger'">
+                            <div t-foreach="state.data.accounts" t-as="acc" t-key="acc.account_id" class="card mb-3 border">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2"
+                                     style="cursor: pointer;"
+                                     t-on-click="() => this.toggleAccount(acc.account_id)">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="fa" t-attf-class="fa #{this.isAccountUnfolded(acc.account_id) ? 'fa-chevron-down text-primary' : 'fa-chevron-right text-muted'}"/>
+                                        <span class="badge bg-primary font-monospace"><t t-esc="acc.account_code"/></span>
+                                        <strong><t t-esc="acc.account_name"/></strong>
+                                    </div>
+                                    <div class="d-flex gap-4 small font-monospace">
+                                        <span>Initial: <strong t-esc="formatMonetary(acc.initial_balance)"/></span>
+                                        <span>Debit: <strong class="text-success" t-esc="formatMonetary(acc.total_debit)"/></span>
+                                        <span>Credit: <strong class="text-danger" t-esc="formatMonetary(acc.total_credit)"/></span>
+                                        <span>Ending: <strong class="text-primary" t-esc="formatMonetary(acc.ending_balance)"/></span>
+                                    </div>
+                                </div>
+                                <div t-if="this.isAccountUnfolded(acc.account_id)" class="card-body p-0">
+                                    <table class="table table-sm table-striped mb-0" style="font-size: 11px;">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 10%;">Date</th>
+                                                <th style="width: 8%;">JRNL</th>
+                                                <th style="width: 15%;">Entry</th>
+                                                <th style="width: 15%;">Partner</th>
+                                                <th>Label / Ref</th>
+                                                <th class="text-end" style="width: 12%;">Debit</th>
+                                                <th class="text-end" style="width: 12%;">Credit</th>
+                                                <th class="text-end" style="width: 12%;">Balance</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr t-foreach="acc.lines" t-as="m" t-key="m.id">
+                                                <td><t t-esc="m.date"/></td>
+                                                <td><span class="badge bg-secondary"><t t-esc="m.journal"/></span></td>
+                                                <td>
+                                                    <a href="#" class="text-decoration-none" t-on-click.prevent="() => this.openJournalEntry(m.entry)">
+                                                        <t t-esc="m.entry"/>
+                                                    </a>
+                                                </td>
+                                                <td><t t-esc="m.partner"/></td>
+                                                <td><t t-esc="m.label"/></td>
+                                                <td class="text-end text-success font-monospace"><t t-esc="formatMonetary(m.debit)"/></td>
+                                                <td class="text-end text-danger font-monospace"><t t-esc="formatMonetary(m.credit)"/></td>
+                                                <td class="text-end fw-bold font-monospace"><t t-esc="formatMonetary(m.balance)"/></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </t>
+
+                        <!-- 5. AGED RECEIVABLE & AGED PAYABLE VIEW -->
+                        <t t-elif="state.reportType === 'aged_receivable' or state.reportType === 'aged_payable'">
+                            <table class="table table-sm table-striped table-bordered align-middle" style="font-size: 12px;">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Partner</th>
+                                        <th class="text-end" style="width: 12%;">Current (Not Due)</th>
+                                        <th class="text-end" style="width: 12%;">1 - 30 Days</th>
+                                        <th class="text-end" style="width: 12%;">31 - 60 Days</th>
+                                        <th class="text-end" style="width: 12%;">61 - 90 Days</th>
+                                        <th class="text-end" style="width: 12%;">91 - 120 Days</th>
+                                        <th class="text-end" style="width: 12%;">120+ Days</th>
+                                        <th class="text-end" style="width: 13%;">Total Due</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="state.data.partners" t-as="p" t-key="p.partner_name">
+                                        <td class="fw-bold"><t t-esc="p.partner_name"/></td>
+                                        <td class="text-end font-monospace text-muted"><t t-esc="formatMonetary(p.current)"/></td>
+                                        <td class="text-end font-monospace"><t t-esc="formatMonetary(p.days_1_30)"/></td>
+                                        <td class="text-end font-monospace"><t t-esc="formatMonetary(p.days_31_60)"/></td>
+                                        <td class="text-end font-monospace"><t t-esc="formatMonetary(p.days_61_90)"/></td>
+                                        <td class="text-end font-monospace text-danger"><t t-esc="formatMonetary(p.days_91_120)"/></td>
+                                        <td class="text-end font-monospace text-danger fw-bold"><t t-esc="formatMonetary(p.days_120_plus)"/></td>
+                                        <td class="text-end font-monospace fw-bold text-primary"><t t-esc="formatMonetary(p.total)"/></td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-secondary fw-bold">
+                                        <td>Totals</td>
+                                        <td class="text-end font-monospace"><t t-esc="formatMonetary(state.data.totals.current)"/></td>
+                                        <td class="text-end font-monospace"><t t-esc="formatMonetary(state.data.totals.days_1_30)"/></td>
+                                        <td class="text-end font-monospace"><t t-esc="formatMonetary(state.data.totals.days_31_60)"/></td>
+                                        <td class="text-end font-monospace"><t t-esc="formatMonetary(state.data.totals.days_61_90)"/></td>
+                                        <td class="text-end font-monospace text-danger"><t t-esc="formatMonetary(state.data.totals.days_91_120)"/></td>
+                                        <td class="text-end font-monospace text-danger"><t t-esc="formatMonetary(state.data.totals.days_120_plus)"/></td>
+                                        <td class="text-end font-monospace text-primary"><t t-esc="formatMonetary(state.data.totals.total)"/></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </t>
+                    </t>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

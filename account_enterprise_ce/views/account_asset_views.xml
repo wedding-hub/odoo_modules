@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- ============================================================== -->
+        <!-- Asset Model / Template Views (account.asset.category)           -->
+        <!-- ============================================================== -->
+        <record id="view_account_asset_category_list" model="ir.ui.view">
+            <field name="name">account.asset.category.list</field>
+            <field name="model">account.asset.category</field>
+            <field name="arch" type="xml">
+                <list string="Asset Models">
+                    <field name="name"/>
+                    <field name="method"/>
+                    <field name="method_number"/>
+                    <field name="method_period"/>
+                    <field name="account_asset_id"/>
+                    <field name="account_depreciation_id"/>
+                    <field name="account_depreciation_expense_id"/>
+                    <field name="journal_id"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_account_asset_category_form" model="ir.ui.view">
+            <field name="name">account.asset.category.form</field>
+            <field name="model">account.asset.category</field>
+            <field name="arch" type="xml">
+                <form string="Asset Model">
+                    <sheet>
+                        <div class="oe_title">
+                            <label for="name" string="Asset Model Name"/>
+                            <h1>
+                                <field name="name" placeholder="e.g. IT Equipment (3 Years)"/>
+                            </h1>
+                        </div>
+                        <group>
+                            <group string="Depreciation Method">
+                                <field name="method"/>
+                                <label for="method_number" string="Duration"/>
+                                <div class="o_row">
+                                    <field name="method_number" class="oe_inline"/>
+                                    <field name="method_period" class="oe_inline"/>
+                                </div>
+                                <field name="method_progress_factor"
+                                       invisible="method != 'degressive'"/>
+                                <field name="prorata"/>
+                                <field name="auto_create_from_bill"/>
+                            </group>
+                            <group string="Accounting Accounts">
+                                <field name="account_asset_id"/>
+                                <field name="account_depreciation_id"/>
+                                <field name="account_depreciation_expense_id"/>
+                                <field name="journal_id"/>
+                                <field name="company_id" groups="base.group_multi_company"/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_account_asset_category" model="ir.actions.act_window">
+            <field name="name">Asset Models</field>
+            <field name="res_model">account.asset.category</field>
+            <field name="view_mode">list,form</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Create your first Asset Model!
+                </p>
+                <p>
+                    Asset models predefine the depreciation method, duration, and GL accounts
+                    to streamline asset creation from vendor bills.
+                </p>
+            </field>
+        </record>
+
+        <!-- ============================================================== -->
+        <!-- Fixed Asset Views (account.asset)                              -->
+        <!-- ============================================================== -->
+        <record id="view_account_asset_list" model="ir.ui.view">
+            <field name="name">account.asset.list</field>
+            <field name="model">account.asset</field>
+            <field name="arch" type="xml">
+                <list string="Fixed Assets"
+                      decoration-info="state == 'draft'"
+                      decoration-success="state == 'open'"
+                      decoration-warning="state == 'paused'"
+                      decoration-muted="state == 'close'">
+                    <field name="name"/>
+                    <field name="code" optional="show"/>
+                    <field name="category_id"/>
+                    <field name="date"/>
+                    <field name="original_value" widget="monetary" sum="Total Gross Cost"/>
+                    <field name="value_depreciated" widget="monetary" sum="Total Depreciated"/>
+                    <field name="value_residual" widget="monetary" sum="Total Net Book Value"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                    <field name="state" widget="badge"
+                           decoration-info="state == 'draft'"
+                           decoration-success="state == 'open'"
+                           decoration-warning="state == 'paused'"
+                           decoration-muted="state == 'close'"/>
+                    <field name="currency_id" column_invisible="True"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="view_account_asset_form" model="ir.ui.view">
+            <field name="name">account.asset.form</field>
+            <field name="model">account.asset</field>
+            <field name="arch" type="xml">
+                <form string="Fixed Asset">
+                    <header>
+                        <button name="action_confirm" type="object"
+                                string="Confirm Asset" class="btn-primary"
+                                invisible="state != 'draft'"/>
+                        <button name="compute_depreciation_board" type="object"
+                                string="Compute Depreciation" class="btn-secondary"
+                                invisible="state != 'draft'"/>
+                        <button name="action_pause" type="object"
+                                string="Pause" class="btn-secondary"
+                                invisible="state != 'open'"/>
+                        <button name="action_resume" type="object"
+                                string="Resume" class="btn-secondary"
+                                invisible="state != 'paused'"/>
+                        <button name="action_close" type="object"
+                                string="Dispose / Close" class="btn-secondary"
+                                invisible="state not in ('open', 'paused')"/>
+                        <button name="action_draft" type="object"
+                                string="Reset to Draft" class="btn-secondary"
+                                invisible="state != 'open'"/>
+                        <field name="state" widget="statusbar" statusbar_visible="draft,open,close"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <label for="name" string="Asset Name"/>
+                            <h1>
+                                <field name="name" placeholder="e.g. MacBook Pro M3 Max"/>
+                            </h1>
+                            <h3>
+                                <field name="code" placeholder="Asset Tag / Reference"/>
+                            </h3>
+                        </div>
+                        <group>
+                            <group string="Asset Valuation">
+                                <field name="category_id"/>
+                                <field name="date"/>
+                                <field name="first_depreciation_date"/>
+                                <field name="original_value" widget="monetary"/>
+                                <field name="salvage_value" widget="monetary"/>
+                                <field name="value_depreciated" widget="monetary"/>
+                                <field name="value_residual" widget="monetary" class="fw-bold text-primary"/>
+                                <field name="currency_id" invisible="1"/>
+                            </group>
+                            <group string="Depreciation Settings">
+                                <field name="method"/>
+                                <label for="method_number" string="Duration"/>
+                                <div class="o_row">
+                                    <field name="method_number" class="oe_inline"/>
+                                    <field name="method_period" class="oe_inline"/>
+                                </div>
+                                <field name="method_progress_factor" invisible="method != 'degressive'"/>
+                                <field name="prorata"/>
+                                <field name="company_id" groups="base.group_multi_company"/>
+                            </group>
+                        </group>
+
+                        <notebook>
+                            <page string="Depreciation Board" name="depreciation_board">
+                                <field name="depreciation_line_ids">
+                                    <list string="Installments"
+                                          decoration-info="state == 'draft'"
+                                          decoration-success="state == 'posted'"
+                                          editable="bottom">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="depreciation_date"/>
+                                        <field name="name"/>
+                                        <field name="amount" sum="Total Depreciation" widget="monetary"/>
+                                        <field name="depreciated_value" widget="monetary"/>
+                                        <field name="remaining_value" widget="monetary"/>
+                                        <field name="move_id" readonly="1"/>
+                                        <field name="state" widget="badge"
+                                               decoration-info="state == 'draft'"
+                                               decoration-success="state == 'posted'"/>
+                                        <button name="create_move" type="object"
+                                                string="Generate Entry" icon="fa-play"
+                                                invisible="move_id != False or parent.state != 'open'"/>
+                                        <field name="currency_id" column_invisible="True"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Accounting Configuration" name="accounting_info">
+                                <group>
+                                    <group string="Accounts">
+                                        <field name="account_asset_id"/>
+                                        <field name="account_depreciation_id"/>
+                                        <field name="account_depreciation_expense_id"/>
+                                        <field name="journal_id"/>
+                                    </group>
+                                    <group string="Source Documents">
+                                        <field name="invoice_id" readonly="1"/>
+                                    </group>
+                                </group>
+                            </page>
+                        </notebook>
+                    </sheet>
+                    <chatter/>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_account_asset_search" model="ir.ui.view">
+            <field name="name">account.asset.search</field>
+            <field name="model">account.asset</field>
+            <field name="arch" type="xml">
+                <search string="Search Assets">
+                    <field name="name"/>
+                    <field name="code"/>
+                    <field name="category_id"/>
+                    <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                    <filter string="Running" name="open" domain="[('state', '=', 'open')]"/>
+                    <filter string="Closed" name="closed" domain="[('state', '=', 'close')]"/>
+                    <separator/>
+                    <separator/>
+                    <filter string="Asset Model" name="group_by_category" context="{'group_by': 'category_id'}"/>
+                    <filter string="Status" name="group_by_state" context="{'group_by': 'state'}"/>
+                    <filter string="Acquisition Date" name="group_by_date" context="{'group_by': 'date:month'}"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_account_asset" model="ir.actions.act_window">
+            <field name="name">Fixed Assets</field>
+            <field name="res_model">account.asset</field>
+            <field name="view_mode">list,form</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Register a new Fixed Asset!
+                </p>
+                <p>
+                    Track asset acquisitions, compute depreciation schedules, and automate periodic journal entries.
+                </p>
+            </field>
+        </record>
+
+        <!-- ============================================================== -->
+        <!-- Bulk Depreciation Posting Wizard View                           -->
+        <!-- ============================================================== -->
+        <record id="view_asset_depreciation_wizard_form" model="ir.ui.view">
+            <field name="name">asset.depreciation.wizard.form</field>
+            <field name="model">asset.depreciation.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Generate Asset Depreciation Entries">
+                    <p class="text-muted">
+                        This wizard will process all due asset depreciation installments up to the selected date.
+                    </p>
+                    <group>
+                        <group>
+                            <field name="date"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group>
+                            <field name="post_immediately"/>
+                        </group>
+                    </group>
+                    <footer>
+                        <button name="action_generate_depreciation_entries"
+                                string="Generate Entries"
+                                type="object"
+                                class="btn-primary"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_asset_depreciation_wizard" model="ir.actions.act_window">
+            <field name="name">Generate Asset Depreciation</field>
+            <field name="res_model">asset.depreciation.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+    </data>
+</odoo>

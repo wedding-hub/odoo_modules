@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <template id="report_stock_valuation_fifo_tmpl">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="web.external_layout">
+                        <div class="page" style="font-size: 11px;">
+                            <!-- Header Title -->
+                            <div class="row mb-3">
+                                <div class="col-8">
+                                    <h2 class="fw-bold text-primary mb-1">Inventory Valuation &amp; FIFO Audit Report</h2>
+                                    <p class="text-muted mb-0">
+                                        Audit Reference: <strong><span t-field="o.name"/></strong> |
+                                        Cut-Off Date: <strong><span t-field="o.as_of_date"/></strong>
+                                    </p>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <div class="badge p-2 fs-6"
+                                         t-attf-class="badge p-2 fs-6 #{'bg-danger' if o.has_discrepancy else 'bg-success'}">
+                                        <t t-if="o.has_discrepancy">Variance Detected</t>
+                                        <t t-else="">Fully Reconciled</t>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Executive Summary Cards -->
+                            <div class="row mb-4">
+                                <div class="col-3">
+                                    <div class="card border p-2 text-center bg-light">
+                                        <div class="text-muted small">Physical SVL Stock Value</div>
+                                        <div class="fs-5 fw-bold text-dark">
+                                            <span t-field="o.total_svl_value"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="card border p-2 text-center bg-light">
+                                        <div class="text-muted small">General Ledger Stock Balance</div>
+                                        <div class="fs-5 fw-bold text-dark">
+                                            <span t-field="o.total_gl_value"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="card border p-2 text-center"
+                                         t-attf-class="card border p-2 text-center #{'bg-danger text-white' if o.has_discrepancy else 'bg-success text-white'}">
+                                        <div class="small opacity-75">Net Variance (SVL - GL)</div>
+                                        <div class="fs-5 fw-bold">
+                                            <span t-field="o.total_discrepancy"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="card border p-2 text-center bg-light">
+                                        <div class="text-muted small">Active FIFO Layers</div>
+                                        <div class="fs-5 fw-bold text-dark">
+                                            <span t-field="o.total_open_fifo_layers"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Detailed Lines Grouped by Category -->
+                            <t t-set="categories" t-value="o.line_ids.mapped('categ_id')"/>
+                            <t t-foreach="categories" t-as="cat">
+                                <t t-set="cat_lines" t-value="o.line_ids.filtered(lambda l: l.categ_id == cat)"/>
+                                <div class="mb-3">
+                                    <h5 class="bg-secondary text-white p-1 ps-2 rounded-1 fw-bold fs-6 mb-1">
+                                        Category: <span t-field="cat.display_name"/>
+                                    </h5>
+                                    <table class="table table-sm table-striped table-bordered align-middle mb-2" style="font-size: 10px;">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 25%;">Product</th>
+                                                <th class="text-end" style="width: 8%;">SVL Qty</th>
+                                                <th class="text-end" style="width: 10%;">SVL Value</th>
+                                                <th class="text-end" style="width: 8%;">FIFO Qty</th>
+                                                <th class="text-end" style="width: 10%;">FIFO Value</th>
+                                                <th class="text-end" style="width: 8%;">FIFO Unit</th>
+                                                <th style="width: 8%;">GL Account</th>
+                                                <th class="text-end" style="width: 10%;">GL Balance</th>
+                                                <th class="text-end" style="width: 8%;">Variance</th>
+                                                <th class="text-center" style="width: 5%;">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr t-foreach="cat_lines" t-as="line">
+                                                <td>
+                                                    <strong t-field="line.product_id.name"/>
+                                                    <t t-if="line.product_code">
+                                                        <br/><span class="text-muted small">[<span t-field="line.product_code"/>]</span>
+                                                    </t>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span t-field="line.svl_qty"/> <span class="text-muted" t-field="line.uom_id.name"/>
+                                                </td>
+                                                <td class="text-end fw-bold">
+                                                    <span t-field="line.svl_value"/>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span t-field="line.fifo_remaining_qty"/>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span t-field="line.fifo_remaining_value"/>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span t-field="line.fifo_avg_unit_cost" t-options="{'widget': 'float', 'precision': 2}"/>
+                                                </td>
+                                                <td>
+                                                    <span t-if="line.valuation_account_id" t-field="line.valuation_account_id.code"/>
+                                                    <span t-else="" class="text-danger">None</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <span t-field="line.gl_balance"/>
+                                                </td>
+                                                <td class="text-end" t-attf-class="text-end #{'fw-bold text-danger' if line.discrepancy != 0 else 'text-success'}">
+                                                    <span t-field="line.discrepancy"/>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span t-if="line.status == 'reconciled'" class="badge bg-success" style="font-size: 8px;">OK</span>
+                                                    <span t-elif="line.status == 'discrepancy'" class="badge bg-danger" style="font-size: 8px;">DIFF</span>
+                                                    <span t-else="" class="badge bg-warning text-dark" style="font-size: 8px;">NO ACCT</span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                        <t t-set="cat_svl" t-value="sum(l.svl_value for l in cat_lines)"/>
+                                        <t t-set="cat_gl" t-value="sum(l.gl_balance for l in cat_lines)"/>
+                                        <t t-set="cat_diff" t-value="cat_svl - cat_gl"/>
+                                        <tfoot>
+                                            <tr class="table-secondary fw-bold">
+                                                <td>Subtotal for <span t-field="cat.name"/></td>
+                                                <td></td>
+                                                <td class="text-end"><t t-esc="cat_svl" t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/></td>
+                                                <td></td>
+                                                <td class="text-end"><t t-esc="sum(l.fifo_remaining_value for l in cat_lines)" t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/></td>
+                                                <td></td>
+                                                <td></td>
+                                                <td class="text-end"><t t-esc="cat_gl" t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/></td>
+                                                <td class="text-end" t-attf-class="text-end #{'text-danger' if cat_diff != 0 else 'text-success'}">
+                                                    <t t-esc="cat_diff" t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                                </td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </t>
+
+                            <!-- Discrepancy Diagnostics & Audit Notes -->
+                            <t t-set="diff_lines" t-value="o.line_ids.filtered(lambda l: l.status != 'reconciled')"/>
+                            <div t-if="diff_lines" class="card border-danger mt-3 page-break-inside-avoid">
+                                <div class="card-header bg-danger text-white py-1">
+                                    <strong>Reconciliation Discrepancies &amp; Audit Notes</strong>
+                                </div>
+                                <div class="card-body p-2">
+                                    <ul class="list-unstyled mb-0" style="font-size: 10px;">
+                                        <li t-foreach="diff_lines" t-as="d_line" class="mb-1">
+                                            <strong><span t-field="d_line.product_id.display_name"/>:</strong>
+                                            Variance: <span class="text-danger fw-bold" t-field="d_line.discrepancy"/> |
+                                            <span class="text-muted"><span t-field="d_line.notes"/></span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+    </data>
+</odoo>
