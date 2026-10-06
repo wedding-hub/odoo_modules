@@ -19,4 +19,4 @@ echo "Restarting Odoo web service to reload assets..."
 docker compose restart web
 
 echo "✅ Module account_enterprise_ce installed/updated!"
-echo "➡️  Open: http://localhost:8069"
+echo "➡️  Open: http://localhost:8070"

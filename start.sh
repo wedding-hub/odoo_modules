@@ -12,6 +12,6 @@ docker compose up -d
 
 echo ""
 echo "✅ Services are running!"
-echo "➡️  Open your browser at: http://localhost:8069"
-echo "➡️  PostgreSQL is accessible on host port 5433 (user: odoo, password: odoo)"
+echo "➡️  Open your browser at: http://localhost:8070"
+echo "➡️  PostgreSQL is accessible on host port 5434 (user: odoo, password: odoo)"
 echo "➡️  To view logs: docker compose logs -f web"
